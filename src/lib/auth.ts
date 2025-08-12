@@ -1,4 +1,4 @@
-import { createHmac } from "crypto";
+// WebCrypto-only HMAC helpers (Edge/Node compatible without Node 'crypto' import)
 
 const ENC = new TextEncoder();
 
@@ -27,34 +27,28 @@ function b64urlToUtf8(encoded: string): string {
   return Buffer.from(padded, "base64").toString("utf8");
 }
 
-export function createSessionToken() {
+async function hmacSha256Hex(message: string, secret: string): Promise<string> {
+  const subtle = (globalThis as unknown as { crypto?: { subtle?: SubtleCrypto } }).crypto?.subtle;
+  if (!subtle) throw new Error("WebCrypto not available");
+  const key = await subtle.importKey(
+    "raw",
+    ENC.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const sig = await subtle.sign({ name: "HMAC" }, key, ENC.encode(message));
+  return hex(sig as ArrayBuffer);
+}
+
+export async function createSessionToken(): Promise<string> {
   const secret = process.env.AUTH_SECRET;
   if (!secret) throw new Error("Missing AUTH_SECRET env var");
   const now = Math.floor(Date.now() / 1000);
   const payload = { sub: "admin", iat: now, exp: now + 60 * 60 * 24 * 7 };
   const encoded = base64url(JSON.stringify(payload));
-  // Always available in node runtime
-  const sig = createHmac("sha256", secret).update(encoded).digest("hex");
+  const sig = await hmacSha256Hex(encoded, secret);
   return `${encoded}.${sig}`;
-}
-
-async function hmacSha256Hex(message: string, secret: string): Promise<string> {
-  try {
-    // Try Node first
-    return createHmac("sha256", secret).update(message).digest("hex");
-  } catch {
-    const subtle = (globalThis as unknown as { crypto?: { subtle?: SubtleCrypto } }).crypto?.subtle;
-    if (!subtle) throw new Error("No crypto available");
-    const key = await subtle.importKey(
-      "raw",
-      ENC.encode(secret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["sign"]
-    );
-    const sig = await subtle.sign({ name: "HMAC" }, key, ENC.encode(message));
-    return hex(sig as ArrayBuffer);
-  }
 }
 
 export async function verifySessionToken(token?: string): Promise<boolean> {

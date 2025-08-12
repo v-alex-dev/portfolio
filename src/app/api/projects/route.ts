@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { Project as DBProject } from "@prisma/client";
 
+export const runtime = "nodejs";
+
 function slugify(title: string) {
   return title
     .toLowerCase()

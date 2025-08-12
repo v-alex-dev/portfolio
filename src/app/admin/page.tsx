@@ -1,5 +1,7 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic"; // ensure fresh data in dev
 
@@ -22,7 +24,9 @@ export default async function AdminPage() {
             <form
               action={async () => {
                 "use server";
-                await fetch("/api/auth/logout", { method: "POST" });
+                const cs = await cookies();
+                cs.delete("session");
+                redirect("/login");
               }}
             >
               <button

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+
 // Minimal contact endpoint - logs to server. Replace with real mail provider (Resend, SendGrid, etc.)
 export async function POST(req: NextRequest) {
   const { name, email, message } = (await req.json()) as {

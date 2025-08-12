@@ -1,0 +1,35 @@
+// Prisma schema for portfolio
+// Using SQLite for local development. You can switch to PostgreSQL later by changing the datasource.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id           Int      @id @default(autoincrement())
+  slug         String   @unique
+  title        String
+  description  String
+  image        String
+  technologies String   @default("[]") // JSON stringified array of strings
+  languages    String   @default("[]") // JSON stringified array of strings
+  repoUrl      String?
+  demoUrl      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

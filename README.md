@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Portfolio Next.js / Prisma / Vercel Blob
 
-## Getting Started
+## Setup
 
-First, run the development server:
+- Node 18+
+- Copy `.env.example` to `.env` and fill values:
+  - `DATABASE_URL="file:./prisma/dev.db"`
+  - `AUTH_SECRET=...` (random string)
+  - `ADMIN_EMAIL=...`
+  - `ADMIN_PASSWORD_HASH=...` (generate via `npm run seed:admin` or `scripts/hash-password.cjs`)
+  - Optional for local blob delete: `BLOB_READ_WRITE_TOKEN=...`
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Scripts
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- `npm run dev` – start dev server
+- `npm run build && npm start` – production
+- `npm run prisma:migrate` – migrate schema
+- `npm run seed:admin` – seed admin user (creates one if none)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Auth
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Admin session via httpOnly cookie `session`.
+- Middleware protects `/admin`, POST/PUT/DELETE on `/api/projects*` and `/api/uploads`.
+- No x-admin-key header; only session-based access.
 
-## Learn More
+## Images
 
-To learn more about Next.js, take a look at the following resources:
+- Uploads via `/api/uploads` to Vercel Blob (public access).
+- On project DELETE, associated blob is removed (best-effort).
+- On project UPDATE, old blob is removed if image URL changed (best-effort).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Models
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `Project`: slug unique, title, description, image, technologies (JSON string), languages (JSON string), repoUrl, demoUrl, timestamps.
+- `User`: email unique, passwordHash, role, timestamps.

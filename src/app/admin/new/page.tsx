@@ -21,7 +21,10 @@ type CreatePayload = {
 
 async function createProject(formData: FormData) {
   "use server";
-  const data = Object.fromEntries(formData) as Record<string, FormDataEntryValue>;
+  const data = Object.fromEntries(formData) as Record<
+    string,
+    FormDataEntryValue
+  >;
 
   const base = getBaseUrl();
   const hdrs = await headers();
@@ -44,7 +47,11 @@ async function createProject(formData: FormData) {
     if (!resUpload.ok) {
       let msg = "Upload failed";
       try {
-        const j = (await resUpload.json()) as { error?: string; details?: string; hint?: string };
+        const j = (await resUpload.json()) as {
+          error?: string;
+          details?: string;
+          hint?: string;
+        };
         msg = `${j.error || msg}${j.details ? `: ${j.details}` : ""}${
           j.hint ? ` (${j.hint})` : ""
         }`;

@@ -22,7 +22,10 @@ type UpdatePayload = {
 
 async function updateProject(slug: string, formData: FormData) {
   "use server";
-  const data = Object.fromEntries(formData) as Record<string, FormDataEntryValue>;
+  const data = Object.fromEntries(formData) as Record<
+    string,
+    FormDataEntryValue
+  >;
   const payload: UpdatePayload = {
     title: String(data.title ?? ""),
     description: String(data.description ?? ""),

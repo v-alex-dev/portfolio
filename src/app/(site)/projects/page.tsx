@@ -2,6 +2,8 @@ import Link from "next/link";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 function parseArray(s: unknown): string[] {
   if (Array.isArray(s)) return s as string[];
   if (typeof s === "string") {

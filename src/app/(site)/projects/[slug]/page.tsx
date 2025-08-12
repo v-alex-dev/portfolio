@@ -1,6 +1,8 @@
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 function parseArray(s: unknown): string[] {
   if (Array.isArray(s)) return s as string[];
   if (typeof s === "string") {
@@ -15,8 +17,13 @@ function parseArray(s: unknown): string[] {
 }
 
 export async function generateStaticParams() {
-  const projects = await prisma.project.findMany({ select: { slug: true } });
-  return projects.map((p) => ({ slug: p.slug }));
+  try {
+    // In environments without a writable/readable DB (e.g., Vercel build), fall back gracefully.
+    const projects = await prisma.project.findMany({ select: { slug: true } });
+    return projects.map((p) => ({ slug: p.slug }));
+  } catch {
+    return [] as Array<{ slug: string }>;
+  }
 }
 
 export default async function ProjectDetail({

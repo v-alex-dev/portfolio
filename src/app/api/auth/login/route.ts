@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSessionToken } from "@/lib/auth";
-import { cookies } from "next/headers";
 import prisma from "@/lib/prisma";
 
 export const runtime = "nodejs"; // ensure Node runtime for cookie and crypto
+
+type BcryptModule = {
+  compare: (data: string, encrypted: string) => Promise<boolean>;
+};
 
 export async function POST(req: NextRequest) {
   const { email, password } = (await req.json()) as { email?: string; password?: string };
@@ -25,8 +28,8 @@ export async function POST(req: NextRequest) {
       try {
         if (envHash.startsWith("plain:")) ok = password === envHash.slice(6);
         else {
-          const mod = await import("bcryptjs");
-          const compareFn = (mod as any).compare ?? (mod as any).default?.compare;
+          const mod = (await import("bcryptjs")) as unknown as BcryptModule | { default?: BcryptModule };
+          const compareFn = (mod as BcryptModule).compare ?? (mod as { default?: BcryptModule }).default?.compare;
           ok = typeof compareFn === "function" ? await compareFn(password, envHash) : false;
         }
       } catch {
@@ -50,8 +53,8 @@ export async function POST(req: NextRequest) {
       if (user!.passwordHash.startsWith("plain:")) {
         return password === user!.passwordHash.slice(6);
       }
-      const mod = await import("bcryptjs");
-      const compareFn = (mod as any).compare ?? (mod as any).default?.compare;
+      const mod = (await import("bcryptjs")) as unknown as BcryptModule | { default?: BcryptModule };
+      const compareFn = (mod as BcryptModule).compare ?? (mod as { default?: BcryptModule }).default?.compare;
       return typeof compareFn === "function" ? await compareFn(password, user!.passwordHash) : false;
     } catch {
       return false;

@@ -9,16 +9,26 @@ function getBaseUrl() {
   return "http://localhost:3000";
 }
 
+type CreatePayload = {
+  title: string;
+  description: string;
+  image: string;
+  technologies: string[];
+  languages: string[];
+  repoUrl?: string;
+  demoUrl?: string;
+};
+
 async function createProject(formData: FormData) {
   "use server";
-  const data = Object.fromEntries(formData) as any;
+  const data = Object.fromEntries(formData) as Record<string, FormDataEntryValue>;
 
   const base = getBaseUrl();
   const hdrs = await headers();
   const cookieHeader = hdrs.get("cookie") ?? "";
 
-  let imageUrl = String(data.image || "").trim();
-  const file = (formData as any).get?.("file") as File | undefined;
+  let imageUrl = String((data.image ?? "").toString().trim());
+  const file = formData.get("file") as File | null;
   if (!imageUrl && file && file.size > 0) {
     // Upload the file first
     const fd = new FormData();
@@ -34,24 +44,26 @@ async function createProject(formData: FormData) {
     if (!resUpload.ok) {
       let msg = "Upload failed";
       try {
-        const j = await resUpload.json();
-        msg = `${j.error || msg}${j.details ? `: ${j.details}` : ""}${j.hint ? ` (${j.hint})` : ""}`;
+        const j = (await resUpload.json()) as { error?: string; details?: string; hint?: string };
+        msg = `${j.error || msg}${j.details ? `: ${j.details}` : ""}${
+          j.hint ? ` (${j.hint})` : ""
+        }`;
       } catch {}
       throw new Error(msg);
     }
-    const up = await resUpload.json();
-    imageUrl = up.url as string;
+    const up = (await resUpload.json()) as { url: string };
+    imageUrl = up.url;
   }
 
-  const payload = {
-    title: String(data.title),
-    description: String(data.description),
+  const payload: CreatePayload = {
+    title: String(data.title ?? ""),
+    description: String(data.description ?? ""),
     image: imageUrl,
-    technologies: String(data.technologies || "")
+    technologies: String(data.technologies ?? "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),
-    languages: String(data.languages || "")
+    languages: String(data.languages ?? "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),
@@ -74,7 +86,7 @@ async function createProject(formData: FormData) {
   if (!res.ok) {
     let msg = "Failed to create project";
     try {
-      const j = await res.json();
+      const j = (await res.json()) as { error?: string };
       msg = `${j.error || msg}`;
     } catch {}
     throw new Error(msg);

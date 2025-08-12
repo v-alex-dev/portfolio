@@ -1,3 +1,5 @@
+import { createHmac } from "crypto";
+
 const ENC = new TextEncoder();
 
 function base64url(input: string) {
@@ -15,16 +17,14 @@ function hex(buf: ArrayBuffer | Uint8Array) {
 function b64urlToUtf8(encoded: string): string {
   const base64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
   const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
-  // Prefer Web API in Edge
-  if (typeof (globalThis as any).atob === "function") {
-    const binary = (globalThis as any).atob(padded) as string;
+  if (typeof globalThis.atob === "function") {
+    const binary = globalThis.atob(padded) as string;
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     return new TextDecoder().decode(bytes);
   }
-  // Fallback Node
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  return require("buffer").Buffer.from(padded, "base64").toString("utf8");
+  // Node fallback
+  return Buffer.from(padded, "base64").toString("utf8");
 }
 
 export function createSessionToken() {
@@ -33,24 +33,17 @@ export function createSessionToken() {
   const now = Math.floor(Date.now() / 1000);
   const payload = { sub: "admin", iat: now, exp: now + 60 * 60 * 24 * 7 };
   const encoded = base64url(JSON.stringify(payload));
-  try {
-    // Node crypto HMAC
-    const { createHmac } = require("crypto") as typeof import("crypto");
-    const sig = createHmac("sha256", secret).update(encoded).digest("hex");
-    return `${encoded}.${sig}`;
-  } catch {
-    // Edge fallback not supported for create in this API route
-    throw new Error("createSessionToken not supported in Edge runtime");
-  }
+  // Always available in node runtime
+  const sig = createHmac("sha256", secret).update(encoded).digest("hex");
+  return `${encoded}.${sig}`;
 }
 
 async function hmacSha256Hex(message: string, secret: string): Promise<string> {
-  // Try Node first
   try {
-    const { createHmac } = require("crypto") as typeof import("crypto");
+    // Try Node first
     return createHmac("sha256", secret).update(message).digest("hex");
   } catch {
-    const subtle = (globalThis as any).crypto?.subtle;
+    const subtle = (globalThis as unknown as { crypto?: { subtle?: SubtleCrypto } }).crypto?.subtle;
     if (!subtle) throw new Error("No crypto available");
     const key = await subtle.importKey(
       "raw",
@@ -73,7 +66,7 @@ export async function verifySessionToken(token?: string): Promise<boolean> {
     if (!encoded || !sig) return false;
     const expected = await hmacSha256Hex(encoded, secret);
     if (expected !== sig) return false;
-    const json = JSON.parse(b64urlToUtf8(encoded));
+    const json = JSON.parse(b64urlToUtf8(encoded)) as { exp?: number };
     if (typeof json.exp !== "number") return false;
     if (json.exp < Math.floor(Date.now() / 1000)) return false;
     return true;

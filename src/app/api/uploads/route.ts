@@ -32,11 +32,13 @@ export async function POST(req: NextRequest) {
       contentType: file.type,
     });
     return NextResponse.json({ url: res.url, pathname: res.pathname, contentType: file.type });
-  } catch (err: any) {
+  } catch (err) {
+    const e = err as { message?: string } | string;
+    const details = typeof e === "string" ? e : e.message;
     const hint = !process.env.BLOB_READ_WRITE_TOKEN ? "BLOB_READ_WRITE_TOKEN missing in env?" : undefined;
     console.error("Blob upload failed:", err);
     return NextResponse.json(
-      { error: "Upload failed", details: err?.message ?? String(err), hint },
+      { error: "Upload failed", details: details ?? String(err), hint },
       { status: 500 }
     );
   }

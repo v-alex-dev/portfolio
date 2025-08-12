@@ -1,8 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { verifySessionToken } from "@/lib/auth";
 
-const PROTECTED_PATHS = ["/admin", "/api/projects", "/api/uploads"]; // protect admin pages, projects API writes, and uploads
-
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
 

@@ -122,7 +122,7 @@ export default async function Home() {
             ))}
             {projects.length === 0 && (
               <div className="col-span-full text-slate-400">
-                Aucun projet pour le moment. Ajoutez-en via l'admin.
+                Aucun projet pour le moment. Ajoutez-en via l&apos;admin.
               </div>
             )}
           </div>

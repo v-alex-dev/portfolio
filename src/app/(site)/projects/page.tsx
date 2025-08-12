@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 
-function parseArray(s: any): string[] {
+function parseArray(s: unknown): string[] {
   if (Array.isArray(s)) return s as string[];
   if (typeof s === "string") {
     try {
@@ -41,9 +41,9 @@ export default async function ProjectsPage() {
                     {p.description}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {parseArray((p as any).technologies)
+                    {parseArray(p.technologies)
                       .slice(0, 3)
-                      .map((t: string) => (
+                      .map((t) => (
                         <span
                           key={t}
                           className="px-2 py-1 text-xs rounded-full bg-white/10 border border-white/10"

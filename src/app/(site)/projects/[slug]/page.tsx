@@ -1,7 +1,7 @@
 import Image from "next/image";
 import prisma from "@/lib/prisma";
 
-function parseArray(s: any): string[] {
+function parseArray(s: unknown): string[] {
   if (Array.isArray(s)) return s as string[];
   if (typeof s === "string") {
     try {
@@ -22,15 +22,16 @@ export async function generateStaticParams() {
 export default async function ProjectDetail({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
+  const { slug } = await params;
   const project = await prisma.project.findUnique({
-    where: { slug: params.slug },
+    where: { slug },
   });
   if (!project) return <div className="p-10">Projet introuvable.</div>;
 
-  const technologies = parseArray((project as any).technologies);
-  const languages = parseArray((project as any).languages);
+  const technologies = parseArray(project.technologies);
+  const languages = parseArray(project.languages);
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-slate-950 to-black text-slate-100 p-6 sm:p-10">
@@ -51,7 +52,7 @@ export default async function ProjectDetail({
               <div>
                 <h3 className="font-semibold mb-2">Technologies</h3>
                 <div className="flex flex-wrap gap-2">
-                  {technologies.map((t: string) => (
+                  {technologies.map((t) => (
                     <span
                       key={t}
                       className="px-2 py-1 text-xs rounded-full bg-white/10 border border-white/10"
@@ -64,7 +65,7 @@ export default async function ProjectDetail({
               <div>
                 <h3 className="font-semibold mb-2">Langages</h3>
                 <div className="flex flex-wrap gap-2">
-                  {languages.map((t: string) => (
+                  {languages.map((t) => (
                     <span
                       key={t}
                       className="px-2 py-1 text-xs rounded-full bg-white/10 border border-white/10"

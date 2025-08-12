@@ -85,8 +85,9 @@ export async function POST(req: NextRequest) {
       },
     });
     return NextResponse.json(toResponse(created), { status: 201 });
-  } catch (e: any) {
-    if (e.code === "P2002") {
+  } catch (e) {
+    const err = e as { code?: string };
+    if (err.code === "P2002") {
       return NextResponse.json({ error: "Slug already exists" }, { status: 409 });
     }
     console.error(e);

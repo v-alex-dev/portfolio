@@ -4,6 +4,19 @@ import { del } from "@vercel/blob";
 
 export const runtime = "nodejs";
 
+type ProjectResponse = {
+  slug: string;
+  title: string;
+  description: string;
+  image: string;
+  technologies: string[];
+  languages: string[];
+  repoUrl?: string;
+  demoUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 function safeParseArray(s: string | null | undefined): string[] {
   if (!s) return [];
   try {
@@ -14,14 +27,25 @@ function safeParseArray(s: string | null | undefined): string[] {
   }
 }
 
-function toResponse(p: any) {
+function toResponse(p: {
+  slug: string;
+  title: string;
+  description: string;
+  image: string;
+  technologies: string | null;
+  languages: string | null;
+  repoUrl: string | null;
+  demoUrl: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): ProjectResponse {
   return {
     slug: p.slug,
     title: p.title,
     description: p.description,
     image: p.image,
-    technologies: safeParseArray(p.technologies as unknown as string),
-    languages: safeParseArray(p.languages as unknown as string),
+    technologies: safeParseArray(p.technologies ?? undefined),
+    languages: safeParseArray(p.languages ?? undefined),
     repoUrl: p.repoUrl ?? undefined,
     demoUrl: p.demoUrl ?? undefined,
     createdAt: p.createdAt.toISOString(),
@@ -31,10 +55,11 @@ function toResponse(p: any) {
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
+  const { slug } = await params;
   const project = await prisma.project.findUnique({
-    where: { slug: params.slug },
+    where: { slug },
   });
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json(toResponse(project));
@@ -42,7 +67,7 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   // Auth handled by middleware (session cookie). No header fallback.
 
@@ -56,20 +81,21 @@ export async function PUT(
     demoUrl?: string;
   }>;
 
-  const updateData: any = { ...body };
+  const updateData: Record<string, unknown> = { ...body };
   if (body.technologies) updateData.technologies = JSON.stringify(body.technologies);
   if (body.languages) updateData.languages = JSON.stringify(body.languages);
 
   try {
+    const { slug } = await params;
     // Get existing project to compare image URLs
-    const existing = await prisma.project.findUnique({ where: { slug: params.slug } });
+    const existing = await prisma.project.findUnique({ where: { slug } });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const oldImage = existing.image;
     const newImage = typeof body.image === "string" ? body.image : undefined;
 
     const updated = await prisma.project.update({
-      where: { slug: params.slug },
+      where: { slug },
       data: updateData,
     });
 
@@ -86,22 +112,24 @@ export async function PUT(
     }
 
     return NextResponse.json(toResponse(updated));
-  } catch (e: any) {
-    if (e.code === "P2025") return NextResponse.json({ error: "Not found" }, { status: 404 });
+  } catch (e) {
+    const err = e as { code?: string };
+    if (err.code === "P2025") return NextResponse.json({ error: "Not found" }, { status: 404 });
     console.error(e);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
 }
 
 export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { slug: string } }
+  _req: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   // Auth handled by middleware (session cookie). No header fallback.
 
   try {
+    const { slug } = await params;
     // Fetch the project first to get its image URL
-    const project = await prisma.project.findUnique({ where: { slug: params.slug } });
+    const project = await prisma.project.findUnique({ where: { slug } });
     if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     // Try to delete the associated blob (best-effort)
@@ -117,10 +145,11 @@ export async function DELETE(
       }
     }
 
-    const removed = await prisma.project.delete({ where: { slug: params.slug } });
+    const removed = await prisma.project.delete({ where: { slug } });
     return NextResponse.json(toResponse(removed));
-  } catch (e: any) {
-    if (e.code === "P2025") return NextResponse.json({ error: "Not found" }, { status: 404 });
+  } catch (e) {
+    const err = e as { code?: string };
+    if (err.code === "P2025") return NextResponse.json({ error: "Not found" }, { status: 404 });
     console.error(e);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }

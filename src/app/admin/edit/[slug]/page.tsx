@@ -10,18 +10,28 @@ function getBaseUrl() {
   return "http://localhost:3000";
 }
 
+type UpdatePayload = {
+  title: string;
+  description: string;
+  image: string;
+  technologies: string[];
+  languages: string[];
+  repoUrl: string | null;
+  demoUrl: string | null;
+};
+
 async function updateProject(slug: string, formData: FormData) {
   "use server";
-  const data = Object.fromEntries(formData) as any;
-  const payload: any = {
-    title: String(data.title),
-    description: String(data.description),
-    image: String(data.image),
-    technologies: String(data.technologies || "")
+  const data = Object.fromEntries(formData) as Record<string, FormDataEntryValue>;
+  const payload: UpdatePayload = {
+    title: String(data.title ?? ""),
+    description: String(data.description ?? ""),
+    image: String(data.image ?? ""),
+    technologies: String(data.technologies ?? "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),
-    languages: String(data.languages || "")
+    languages: String(data.languages ?? "")
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean),
@@ -46,7 +56,7 @@ async function updateProject(slug: string, formData: FormData) {
   redirect("/admin");
 }
 
-function parseArray(s: any): string[] {
+function parseArray(s: unknown): string[] {
   if (Array.isArray(s)) return s as string[];
   if (typeof s === "string") {
     try {
@@ -62,13 +72,14 @@ function parseArray(s: any): string[] {
 export default async function EditProjectPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  const p = await prisma.project.findUnique({ where: { slug: params.slug } });
+  const { slug } = await params;
+  const p = await prisma.project.findUnique({ where: { slug } });
   if (!p) return notFound();
 
-  const techs = parseArray((p as any).technologies);
-  const langs = parseArray((p as any).languages);
+  const techs = parseArray(p.technologies);
+  const langs = parseArray(p.languages);
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-slate-950 to-black text-slate-100 p-6 sm:p-10">
